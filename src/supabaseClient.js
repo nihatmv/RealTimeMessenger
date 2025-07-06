@@ -20,7 +20,7 @@ async function isRoomCodeUnique(roomCode) {
     .select('id')
     .eq('room_code', roomCode)
     .single();
-  return !data; // true if not found, so unique
+  return !data;
 }
 
 async function getUniqueRoomCode() {
