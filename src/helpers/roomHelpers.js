@@ -1,3 +1,5 @@
+import { supabase } from '../supabaseClient';
+
 function generateRoomCode() {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let result = '';
@@ -18,7 +20,6 @@ function createPublicRoomPayload(name, createdBy) {
 }
 
 function createPrivateRoomPayload(name, password, createdBy) {
-  // You should hash the password here before returning!
   return {
     name,
     room_code: generateRoomCode(),
@@ -28,4 +29,20 @@ function createPrivateRoomPayload(name, password, createdBy) {
   };
 }
 
-export { generateRoomCode, createPublicRoomPayload, createPrivateRoomPayload };
+export async function joinRoom({ userId, roomId }) {
+  return await supabase
+    .from('RoomMemberships')
+    .insert([{ user_id: userId, room_id: roomId }]);
+}
+
+// Helper function to get room ID consistently (handles both view and table structures)
+function getRoomId(room) {
+  return room.room_id || room.id;
+}
+
+export {
+  generateRoomCode,
+  createPublicRoomPayload,
+  createPrivateRoomPayload,
+  getRoomId,
+};

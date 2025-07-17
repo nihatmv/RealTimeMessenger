@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import RoomsList from './RoomsList';
 import ChatArea from './ChatArea';
 
-function MainArea() {
+function MainArea({ onRoomsRefresh }) {
   const [selectedRoom, setSelectedRoom] = useState(null);
 
   function handleRoomSelect(room) {
@@ -17,6 +17,7 @@ function MainArea() {
         <RoomsList
           onRoomSelect={handleRoomSelect}
           selectedRoom={selectedRoom}
+          onRefresh={onRoomsRefresh}
         />
       </div>
       <ChatArea selectedRoom={selectedRoom} />

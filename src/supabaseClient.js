@@ -87,11 +87,11 @@ async function fetchRooms() {
     return { data: null, error: { message: 'User not authenticated' } };
   }
 
-  // Only fetch rooms where is_active is true
   const { data, error } = await supabase
     .from('Rooms')
     .select('*')
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .eq('created_by', user.id);
 
   return { data, error };
 }
@@ -105,13 +105,51 @@ async function deleteRoom(roomId) {
     return { data: null, error: { message: 'User not authenticated' } };
   }
 
-  const { data, error } = await supabase
-    .from('Rooms')
-    .delete()
-    .eq('id', roomId)
-    .eq('created_by', user.id); // Only allow creator to delete
+  try {
+    const { data: memberships, error: checkError } = await supabase
+      .from('RoomMemberships')
+      .select('*')
+      .eq('room_id', roomId);
 
-  return { data, error };
+    if (checkError) {
+      console.error('Error checking memberships:', checkError);
+      return { data: null, error: checkError };
+    }
+
+    console.log(
+      `Found ${memberships?.length || 0} memberships for room ${roomId}`
+    );
+
+    if (memberships && memberships.length > 0) {
+      const { error: membershipError } = await supabase
+        .from('RoomMemberships')
+        .delete()
+        .eq('room_id', roomId);
+
+      if (membershipError) {
+        console.error('Error deleting memberships:', membershipError);
+        return { data: null, error: membershipError };
+      }
+      console.log('Successfully deleted memberships');
+    }
+
+    const { data, error } = await supabase
+      .from('Rooms')
+      .delete()
+      .eq('id', roomId)
+      .eq('created_by', user.id);
+
+    if (error) {
+      console.error('Error deleting room:', error);
+    } else {
+      console.log('Successfully deleted room');
+    }
+
+    return { data, error };
+  } catch (err) {
+    console.error('Unexpected error in deleteRoom:', err);
+    return { data: null, error: { message: 'Unexpected error occurred' } };
+  }
 }
 
 async function fetchUserRooms() {
@@ -147,18 +185,18 @@ async function fetchAvailableRooms() {
   }
 
   // Get rooms that the user hasn't joined yet
-  const { data: userRooms, error: userRoomsError } = await supabase
-    .from('UserRooms')
+  const { data: userMemberships, error: userMembershipsError } = await supabase
+    .from('RoomMemberships')
     .select('room_id')
     .eq('user_id', user.id);
 
   let query = supabase.from('Rooms').select('*').eq('is_active', true);
 
-  if (userRooms && userRooms.length > 0) {
+  if (userMemberships && userMemberships.length > 0) {
     query = query.not(
       'id',
       'in',
-      `(${userRooms.map((r) => r.room_id).join(',')})`
+      `(${userMemberships.map((r) => r.room_id).join(',')})`
     );
   }
 
@@ -167,41 +205,213 @@ async function fetchAvailableRooms() {
   return { data, error };
 }
 
-// async function joinRoom(roomId, password = null) {
-//   const {
-//     data: { user },
-//   } = await supabase.auth.getUser();
+async function fetchOtherRooms() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  console.log('user:', user.id);
 
-//   if (!user) {
-//     return { data: null, error: { message: 'User not authenticated' } };
-//   }
+  if (!user) {
+    return { data: null, error: { message: 'User not authenticated' } };
+  }
 
-//   // First check if room exists and password is correct
-//   const { data: room, error: roomError } = await supabase
-//     .from('Rooms')
-//     .select('*')
-//     .eq('id', roomId)
-//     .single();
+  const { data, error } = await supabase
+    .from('rooms_with_creator_email')
+    .select('*')
+    .neq('created_by', user.id)
+    .eq('is_active', true);
 
-//   if (roomError || !room) {
-//     return { data: null, error: { message: 'Room not found' } };
-//   }
+  return { data, error };
+}
 
-//   // Check password for private rooms
-//   if (room.password && room.password !== password) {
-//     return { data: null, error: { message: 'Incorrect password' } };
-//   }
+async function joinRoom(roomId, password = null) {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-//   // Add user to room
-//   const { data, error } = await supabase.from('UserRooms').insert([
-//     {
-//       user_id: user.id,
-//       room_id: roomId,
-//     },
-//   ]);
+  if (!user)
+    return { data: null, error: { message: 'User not authenticated' } };
 
-//   return { data, error };
-// }
+  // Check if room exists and verify password
+  const { data: room, error: roomError } = await supabase
+    .from('Rooms')
+    .select('*')
+    .eq('id', roomId)
+    .single();
+
+  if (roomError || !room) {
+    return { data: null, error: { message: 'Room not found' } };
+  }
+
+  // Check password for private rooms
+  if (room.password && room.password !== password) {
+    return { data: null, error: { message: 'Incorrect password' } };
+  }
+
+  // Check if user is already a member
+  const { data: existingMembership } = await supabase
+    .from('RoomMemberships')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('room_id', roomId)
+    .single();
+
+  if (existingMembership) {
+    return { data: existingMembership, error: { message: 'Already a member' } };
+  }
+
+  // Add user to room
+  try {
+    const { data, error } = await supabase.from('RoomMemberships').insert([
+      {
+        user_id: user.id,
+        room_id: roomId,
+        joined_at: new Date().toISOString(),
+      },
+    ]);
+
+    if (error && error.message.includes('duplicate key value')) {
+      return { data: null, error: { message: 'Already a member' } };
+    }
+
+    return { data, error };
+  } catch (err) {
+    return { data: null, error: { message: 'Unexpected error' } };
+  }
+}
+
+async function fetchUserAccessibleRooms() {
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user)
+    return { data: null, error: { message: 'User not authenticated' } };
+
+  // Get rooms created by user using the new view
+  const { data: createdRooms, error: createdError } = await supabase
+    .from('rooms_with_creator_email')
+    .select('*')
+    .eq('created_by', user.id)
+    .eq('is_active', true);
+
+  // Get rooms user has joined using the new view
+  const { data: joinedRooms, error: joinedError } = await supabase
+    .from('rooms_with_creator_email')
+    .select(
+      `
+      *,
+      RoomMemberships!inner(user_id)
+    `
+    )
+    .eq('RoomMemberships.user_id', user.id)
+    .eq('is_active', true);
+
+  // Combine and remove duplicates
+  const allRooms = [...(createdRooms || []), ...(joinedRooms || [])];
+  const uniqueRooms = allRooms.filter(
+    (room, index, self) =>
+      index === self.findIndex((r) => r.room_id === room.room_id)
+  );
+
+  return { data: uniqueRooms, error: createdError || joinedError };
+}
+
+// Fetch all member emails and the creator's email for a room
+async function fetchRoomAllMemberEmails(roomId) {
+  // 1. Fetch all member emails from the view
+  const { data: memberships, error: membershipsError } = await supabase
+    .from('room_members_with_email')
+    .select('email')
+    .eq('room_id', roomId);
+
+  if (membershipsError) {
+    return { data: null, error: membershipsError };
+  }
+
+  const memberEmails = memberships?.map((m) => m.email) || [];
+
+  // 2. Fetch the creator's email
+  const { data: room, error: roomError } = await supabase
+    .from('Rooms')
+    .select('created_by')
+    .eq('id', roomId)
+    .single();
+
+  if (roomError || !room) {
+    return { data: null, error: roomError || { message: 'Room not found' } };
+  }
+
+  // 3. Get creator's email from auth.users
+  const { data: creator, error: creatorError } = await supabase
+    .from('room_members_with_email')
+    .select('email')
+    .eq('user_id', room.created_by)
+    .single();
+
+  if (creatorError) {
+    console.warn('Could not fetch creator email:', creatorError);
+  }
+
+  // 4. Combine and deduplicate emails
+  const allEmails = [...memberEmails];
+  if (creator?.email && !allEmails.includes(creator.email)) {
+    allEmails.push(creator.email);
+  }
+
+  return { data: allEmails, error: null };
+}
+
+// Alternative function to fetch room member emails without SQL view
+async function fetchRoomAllMemberEmailsAlternative(roomId) {
+  // 1. Fetch all user_ids from RoomMemberships for the room
+  const { data: memberships, error: membershipsError } = await supabase
+    .from('RoomMemberships')
+    .select('user_id')
+    .eq('room_id', roomId);
+
+  if (membershipsError) {
+    return { data: null, error: membershipsError };
+  }
+
+  const memberUserIds = memberships?.map((m) => m.user_id) || [];
+
+  // 2. Fetch the creator's user ID
+  const { data: room, error: roomError } = await supabase
+    .from('Rooms')
+    .select('created_by')
+    .eq('id', roomId)
+    .single();
+
+  if (roomError || !room) {
+    return { data: null, error: roomError || { message: 'Room not found' } };
+  }
+
+  // 3. Combine and deduplicate user IDs
+  const allUserIds = [...memberUserIds];
+  if (!allUserIds.includes(room.created_by)) {
+    allUserIds.push(room.created_by);
+  }
+
+  // 4. Fetch emails for all user IDs using admin API
+  // Note: This requires server-side implementation or RPC function
+  // For now, we'll return user IDs and handle email fetching in the UI
+  return { data: allUserIds, error: null };
+}
+
+// Fetch room member emails using RPC function
+async function fetchRoomMemberEmails(roomId) {
+  const { data, error } = await supabase.rpc('get_room_member_emails', {
+    room_id_param: roomId,
+  });
+
+  if (error) {
+    console.error('Error fetching room member emails:', error);
+    return { data: null, error };
+  }
+
+  return { data: data || [], error: null };
+}
 
 export {
   supabase,
@@ -211,4 +421,10 @@ export {
   deleteRoom,
   fetchUserRooms,
   fetchAvailableRooms,
+  fetchOtherRooms,
+  joinRoom,
+  fetchUserAccessibleRooms,
+  fetchRoomAllMemberEmails,
+  fetchRoomAllMemberEmailsAlternative,
+  fetchRoomMemberEmails,
 };
