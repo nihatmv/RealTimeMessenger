@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import '../style.css';
 import { Link, useNavigate } from 'react-router-dom';
 import { UserAuth } from '../context/AuthContext';
+import { supabase } from '../supabaseClient';
 
 const Signup = () => {
   const [email, setEmail] = useState('');
@@ -18,9 +19,8 @@ const Signup = () => {
   const handleSignUp = async (e) => {
     e.preventDefault();
 
-    // Check if fields are empty
     if (!email.trim() || !password.trim()) {
-      setError('Please enter both email and password');
+      setError('Please enter email and password');
       return;
     }
 
@@ -31,11 +31,19 @@ const Signup = () => {
       const result = await signUpNewUser(email, password);
 
       if (result.success) {
-        // Use replace: true to replace current history entry
         navigate('/dashboard', { replace: true });
       } else {
-        // Handle signup errors
-        setError(result.error || 'Failed to create account');
+        if (
+          result.error &&
+          result.error.message &&
+          result.error.message.includes('User already registered')
+        ) {
+          setEmailError(
+            'This email is already registered. Please use another.'
+          );
+        } else {
+          setError(result.error || 'Failed to create account');
+        }
       }
     } catch (err) {
       setError('An error occurred. Please try again.');

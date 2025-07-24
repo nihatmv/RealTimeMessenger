@@ -18,23 +18,20 @@ const Signin = () => {
   const handleSignIn = async (e) => {
     e.preventDefault();
 
-    // Check if fields are empty
     if (!email.trim() || !password.trim()) {
       setError('Please enter both email and password');
       return;
     }
 
     setLoading(true);
-    setError(''); // Clear previous errors
+    setError('');
 
     try {
       const result = await signInNewUser(email, password);
 
       if (result.success) {
-        // Use replace: true to replace current history entry
         navigate('/dashboard', { replace: true });
       } else {
-        // Handle authentication errors
         setError(result.error || 'Invalid email or password');
       }
     } catch (err) {

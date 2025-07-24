@@ -3,6 +3,7 @@ import {
   createPublicRoom,
   createPrivateRoom,
   fetchOtherRooms,
+  fetchUsername,
 } from '../supabaseClient';
 import { joinRoom, getRoomId } from '../helpers/roomHelpers';
 
@@ -33,6 +34,7 @@ function Sidebar({
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [joinRoomPassword, setJoinRoomPassword] = useState('');
   const [joinMessage, setJoinMessage] = useState('');
+  const [username, setUsername] = useState('');
 
   useEffect(() => {
     if (showJoinRoomModal) {
@@ -45,6 +47,16 @@ function Sidebar({
       });
     }
   }, [showJoinRoomModal]);
+
+  useEffect(() => {
+    async function getUsername() {
+      if (session?.user?.id) {
+        const { data: username, error } = await fetchUsername(session.user.id);
+        if (username) setUsername(username);
+      }
+    }
+    getUsername();
+  }, [session]);
 
   function handleTabSwitch(section) {
     setActiveSection(section);
@@ -82,7 +94,6 @@ function Sidebar({
         setShowCreateRoomModal(false);
         setPublicRoomName('');
 
-        // Refresh the rooms list to show the new room
         if (refreshRooms) {
           refreshRooms();
         }
@@ -106,7 +117,6 @@ function Sidebar({
         setPrivateRoomName('');
         setPrivateRoomPassword('');
 
-        // Refresh the rooms list to show the new room
         if (refreshRooms) {
           refreshRooms();
         }
@@ -165,7 +175,9 @@ function Sidebar({
         {/* Custom Tooltip */}
         {showTooltip && (
           <div className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-3 py-2 rounded shadow z-20 min-w-max flex flex-col items-center">
-            <div className="mb-2">{session?.user?.email}</div>
+            <div className="mb-2">
+              {username || session?.user?.email?.split('@')[0]}
+            </div>
             <button
               className="px-2 py-1 bg-red-500 text-white rounded text-xs hover:bg-red-600 transition"
               onClick={handleSignOut}
@@ -200,11 +212,11 @@ function Sidebar({
         </span>
       </div>
       {showCreateRoomModal && (
-        <div className="fixed inset-0 flex justify-center items-center z-50">
+        <div className="fixed inset-0 bg-opacity-40 flex justify-center items-center z-50 ">
           {/* Larger, softer dark backdrop */}
-          <div className="bg-black bg-opacity-30 rounded-lg p-12">
+          <div className="">
             {/* Modal content */}
-            <div className="bg-white rounded-lg p-6 w-96 relative">
+            <div className="bg-white/90 rounded-lg p-6 w-96 relative">
               {/* Close Button */}
               <button
                 className="absolute top-4 right-4 text-red-500 hover:text-red-700 text-2xl font-bold w-8 h-8 flex items-center justify-center rounded-full hover:bg-red-100 transition-colors z-20"

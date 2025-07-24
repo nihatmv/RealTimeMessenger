@@ -5,7 +5,6 @@ import { Navigate } from 'react-router-dom';
 const PrivateRoute = ({ children }) => {
   const { session, loading } = UserAuth();
 
-  // Show loading spinner while checking authentication
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">

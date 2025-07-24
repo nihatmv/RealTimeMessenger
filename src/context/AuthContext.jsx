@@ -6,6 +6,7 @@ const AuthContext = createContext();
 export const AuthContextProvider = ({ children }) => {
   const [session, setSession] = useState(undefined);
   const [loading, setLoading] = useState(true);
+  const [username, setUsername] = useState(undefined);
 
   // Sign up
   const signUpNewUser = async (email, password) => {
@@ -57,9 +58,31 @@ export const AuthContextProvider = ({ children }) => {
     }
   };
 
+  async function fetchUsername(userId) {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username')
+      .eq('id', userId)
+      .single();
+    if (error) {
+      console.error('Error fetching username:', error);
+      setUsername(undefined);
+    } else {
+      setUsername(data?.username);
+    }
+  }
+
   return (
     <AuthContext.Provider
-      value={{ session, loading, signUpNewUser, signOut, signInNewUser }}
+      value={{
+        session,
+        loading,
+        username,
+        signUpNewUser,
+        signOut,
+        fetchUsername,
+        signInNewUser,
+      }}
     >
       {children}
     </AuthContext.Provider>

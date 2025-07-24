@@ -43,16 +43,39 @@ async function createPublicRoom({ name }) {
   }
 
   const roomCode = await getUniqueRoomCode();
-  const { data, error } = await supabase.from('Rooms').insert([
-    {
-      name,
-      created_by: user.id,
-      room_code: roomCode,
-      is_active: true,
-      password: null,
-    },
-  ]);
-  return { data, error };
+  const { data: newRooms, error } = await supabase
+    .from('Rooms')
+    .insert([
+      {
+        name,
+        created_by: user.id,
+        room_code: roomCode,
+        is_active: true,
+        password: null,
+      },
+    ])
+    .select();
+
+  if (error || !newRooms || newRooms.length === 0) {
+    console.error('Error creating room:', error);
+    return { data: null, error: error || { message: 'Failed to create room' } };
+  }
+
+  const newRoom = newRooms[0];
+
+  // Add creator as a member
+  const { error: membershipError } = await supabase
+    .from('RoomMemberships')
+    .insert([{ user_id: user.id, room_id: newRoom.id }]);
+
+  if (membershipError) {
+    // If adding member fails, we should ideally delete the room to avoid orphans
+    console.error('Failed to add creator to room members:', membershipError);
+    await supabase.from('Rooms').delete().eq('id', newRoom.id); // Rollback
+    return { data: null, error: membershipError };
+  }
+
+  return { data: newRooms, error: null };
 }
 
 async function createPrivateRoom({ name, password }) {
@@ -66,16 +89,39 @@ async function createPrivateRoom({ name, password }) {
   }
 
   const roomCode = await getUniqueRoomCode();
-  const { data, error } = await supabase.from('Rooms').insert([
-    {
-      name,
-      created_by: user.id,
-      room_code: roomCode,
-      is_active: true,
-      password,
-    },
-  ]);
-  return { data, error };
+  const { data: newRooms, error } = await supabase
+    .from('Rooms')
+    .insert([
+      {
+        name,
+        created_by: user.id,
+        room_code: roomCode,
+        is_active: true,
+        password,
+      },
+    ])
+    .select();
+
+  if (error || !newRooms || newRooms.length === 0) {
+    console.error('Error creating room:', error);
+    return { data: null, error: error || { message: 'Failed to create room' } };
+  }
+
+  const newRoom = newRooms[0];
+
+  // Add creator as a member
+  const { error: membershipError } = await supabase
+    .from('RoomMemberships')
+    .insert([{ user_id: user.id, room_id: newRoom.id }]);
+
+  if (membershipError) {
+    // If adding member fails, we should ideally delete the room to avoid orphans
+    console.error('Failed to add creator to room members:', membershipError);
+    await supabase.from('Rooms').delete().eq('id', newRoom.id); // Rollback
+    return { data: null, error: membershipError };
+  }
+
+  return { data: newRooms, error: null };
 }
 
 async function fetchRooms() {
@@ -112,13 +158,8 @@ async function deleteRoom(roomId) {
       .eq('room_id', roomId);
 
     if (checkError) {
-      console.error('Error checking memberships:', checkError);
       return { data: null, error: checkError };
     }
-
-    console.log(
-      `Found ${memberships?.length || 0} memberships for room ${roomId}`
-    );
 
     if (memberships && memberships.length > 0) {
       const { error: membershipError } = await supabase
@@ -127,10 +168,8 @@ async function deleteRoom(roomId) {
         .eq('room_id', roomId);
 
       if (membershipError) {
-        console.error('Error deleting memberships:', membershipError);
         return { data: null, error: membershipError };
       }
-      console.log('Successfully deleted memberships');
     }
 
     const { data, error } = await supabase
@@ -139,15 +178,8 @@ async function deleteRoom(roomId) {
       .eq('id', roomId)
       .eq('created_by', user.id);
 
-    if (error) {
-      console.error('Error deleting room:', error);
-    } else {
-      console.log('Successfully deleted room');
-    }
-
     return { data, error };
   } catch (err) {
-    console.error('Unexpected error in deleteRoom:', err);
     return { data: null, error: { message: 'Unexpected error occurred' } };
   }
 }
@@ -413,6 +445,34 @@ async function fetchRoomMemberEmails(roomId) {
   return { data: data || [], error: null };
 }
 
+async function fetchUsername(userId) {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', userId)
+    .single();
+  if (error) {
+    return { data: null, error };
+  }
+  return { data: data?.username || null, error: null };
+}
+
+async function sendMessage(roomId, userId, content) {
+  const { data, error } = await supabase
+    .from('messages')
+    .insert([{ room_id: roomId, user_id: userId, content }]);
+  return { data, error };
+}
+
+async function fetchMessages(roomId) {
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('room_id', roomId)
+    .order('created_at', { ascending: true });
+  return { data, error };
+}
+
 export {
   supabase,
   createPublicRoom,
@@ -427,4 +487,7 @@ export {
   fetchRoomAllMemberEmails,
   fetchRoomAllMemberEmailsAlternative,
   fetchRoomMemberEmails,
+  fetchUsername,
+  sendMessage,
+  fetchMessages,
 };

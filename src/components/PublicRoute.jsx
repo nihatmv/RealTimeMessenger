@@ -5,7 +5,6 @@ import { Navigate } from 'react-router-dom';
 const PublicRoute = ({ children }) => {
   const { session, loading } = UserAuth();
 
-  // Show loading spinner while checking authentication
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -14,12 +13,10 @@ const PublicRoute = ({ children }) => {
     );
   }
 
-  // If user is authenticated, redirect to dashboard
   if (session) {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // If not authenticated, show the public page
   return <>{children}</>;
 };
 

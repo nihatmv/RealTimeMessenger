@@ -1,24 +1,61 @@
 import { useEffect, useState } from 'react';
-import { fetchRoomMemberEmails } from '../supabaseClient';
+import {
+  fetchRoomMemberEmails,
+  fetchMessages,
+  sendMessage,
+} from '../supabaseClient';
 import { getRoomId } from '../helpers/roomHelpers';
+import { UserAuth } from '../context/AuthContext';
 
-function ChatArea({ selectedRoom }) {
+function ChatArea({ selectedRoom, roomId }) {
   const [roomMembers, setRoomMembers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [usernames, setUsernames] = useState({});
+  const { session } = UserAuth();
+
+  const fetchAndSetMessages = async (currentRoomId) => {
+    const { data, error } = await fetchMessages(currentRoomId);
+    if (error) {
+      console.error('Error fetching messages:', error);
+      setMessages([]);
+    } else {
+      setMessages(data);
+    }
+  };
 
   useEffect(() => {
     if (selectedRoom) {
-      const roomId = getRoomId(selectedRoom);
+      const currentRoomId = getRoomId(selectedRoom);
       console.log('Selected room object:', selectedRoom);
-      console.log('Selected room ID:', roomId);
-      fetchRoomMemberEmails(roomId).then(({ data, error }) => {
+      console.log('Selected room ID:', currentRoomId);
+      fetchRoomMemberEmails(currentRoomId).then(({ data, error }) => {
         console.log('Fetched room members:', data, error);
-        // Extract email strings from the objects
+
         const emailList = data ? data.map((item) => item.email) : [];
         setRoomMembers(emailList);
       });
+      fetchAndSetMessages(currentRoomId);
     }
   }, [selectedRoom]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    if (newMessage.trim() === '' || !session) return;
+
+    const currentRoomId = getRoomId(selectedRoom);
+    const userId = session.user.id;
+
+    const { error } = await sendMessage(currentRoomId, userId, newMessage);
+
+    if (error) {
+      console.error('Error sending message:', error);
+    } else {
+      setNewMessage('');
+      fetchAndSetMessages(currentRoomId);
+    }
+  };
 
   if (!selectedRoom) {
     return (
@@ -63,42 +100,49 @@ function ChatArea({ selectedRoom }) {
         </div>
       </div>
 
-      {/* Members */}
-      {/* {roomMembers.length > 0 && (
-        <div className="bg-white p-4 border-b">
-          <h3 className="text-lg font-medium text-gray-800 mb-2">
-            Room Members ({roomMembers.length})
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {roomMembers.map((memberEmail, index) => (
-              <span
-                key={index}
-                className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm flex items-center"
-              >
-                <span className="mr-1">👤</span>
-                {memberEmail}
-              </span>
-            ))}
-          </div>
-        </div>
-      )} */}
-
       {/* Messages */}
       <div className="flex-1 p-4 overflow-y-auto">
-        {/* Placeholder for messages */}
-        <div className="text-center text-gray-500 mt-8">
-          <div className="text-lg mb-2">💬</div>
-          <div>No messages yet</div>
-          <div className="text-sm">Be the first to send a message!</div>
-        </div>
+        {messages.length > 0 ? (
+          messages.map((msg) => (
+            <div key={msg.id} className="mb-4">
+              <div className="flex items-center">
+                <span className="font-bold text-gray-800">
+                  User-{msg.user_id.substring(0, 16)}...
+                </span>
+                <span className="text-xs text-gray-500 ml-2">
+                  {new Date(msg.created_at).toLocaleTimeString()}
+                </span>
+              </div>
+              <p className="text-gray-700">{msg.content}</p>
+            </div>
+          ))
+        ) : (
+          <div className="text-center text-gray-500 mt-8">
+            <div className="text-lg mb-2">💬</div>
+            <div>No messages yet</div>
+            <div className="text-sm">Be the first to send a message!</div>
+          </div>
+        )}
       </div>
 
       {/* Input */}
       <div className="p-4 border-t bg-white">
-        <input
-          className="w-full p-2 border rounded"
-          placeholder="Type a message..."
-        />
+        <form onSubmit={handleSendMessage} className="flex">
+          <input
+            type="text"
+            className="w-full p-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Type a message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+          />
+          <button
+            type="submit"
+            className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 transition disabled:bg-blue-300"
+            disabled={!newMessage.trim() || !session}
+          >
+            Send
+          </button>
+        </form>
       </div>
 
       {isModalOpen && (

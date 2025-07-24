@@ -12,8 +12,6 @@ function MainArea({ onRoomsRefresh }) {
   return (
     <div className="flex flex-1">
       <div className="w-80 bg-gray-800 text-white border-r border-gray-700">
-        {/* Tab Navigation */}
-        {/* Room Lists */}
         <RoomsList
           onRoomSelect={handleRoomSelect}
           selectedRoom={selectedRoom}
