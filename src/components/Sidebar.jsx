@@ -199,7 +199,7 @@ function Sidebar({
         </span>
       </div>
       {/* Join Room Button */}
-      <div className="relative group w-full flex flex-col items-center">
+      {/* <div className="relative group w-full flex flex-col items-center">
         <button
           className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center hover:bg-blue-700 transition"
           onClick={() => setShowJoinRoomModal(true)}
@@ -209,7 +209,7 @@ function Sidebar({
         <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-90 transition whitespace-nowrap z-10 select-none pointer-events-none shadow">
           Join Room
         </span>
-      </div>
+      </div> */}
       {showCreateRoomModal && (
         <div className="fixed inset-0 bg-opacity-40 flex justify-center items-center z-50 ">
           {/* Larger, softer dark backdrop */}
@@ -319,7 +319,7 @@ function Sidebar({
           </div>
         </div>
       )}
-      {showJoinRoomModal && (
+      {/* {showJoinRoomModal && (
         <div className="fixed inset-0 flex justify-center items-center z-50">
           <div
             className="bg-black bg-opacity-30 rounded-lg p-12"
@@ -447,7 +447,7 @@ function Sidebar({
             </div>
           </div>
         </div>
-      )}
+      )} */}
       {currentRoom && (
         <div className="w-full flex flex-col items-center mt-4">
           <div className="text-xs text-gray-400">Current Room</div>
