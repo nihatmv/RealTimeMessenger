@@ -3,7 +3,6 @@ import {
   createPublicRoom,
   createPrivateRoom,
   fetchOtherRooms,
-  fetchUsername,
 } from '../supabaseClient';
 import { joinRoom, getRoomId } from '../helpers/roomHelpers';
 
@@ -48,15 +47,15 @@ function Sidebar({
     }
   }, [showJoinRoomModal]);
 
-  useEffect(() => {
-    async function getUsername() {
-      if (session?.user?.id) {
-        const { data: username, error } = await fetchUsername(session.user.id);
-        if (username) setUsername(username);
-      }
-    }
-    getUsername();
-  }, [session]);
+  // useEffect(() => {
+  //   async function getUsername() {
+  //     if (session?.user?.id) {
+  //       const { data: username, error } = await fetchUsername(session.user.id);
+  //       if (username) setUsername(username);
+  //     }
+  //   }
+  //   getUsername();
+  // }, [session]);
 
   function handleTabSwitch(section) {
     setActiveSection(section);

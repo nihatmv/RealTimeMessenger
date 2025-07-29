@@ -58,20 +58,6 @@ export const AuthContextProvider = ({ children }) => {
     }
   };
 
-  async function fetchUsername(userId) {
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('username')
-      .eq('id', userId)
-      .single();
-    if (error) {
-      console.error('Error fetching username:', error);
-      setUsername(undefined);
-    } else {
-      setUsername(data?.username);
-    }
-  }
-
   return (
     <AuthContext.Provider
       value={{
@@ -80,7 +66,6 @@ export const AuthContextProvider = ({ children }) => {
         username,
         signUpNewUser,
         signOut,
-        fetchUsername,
         signInNewUser,
       }}
     >

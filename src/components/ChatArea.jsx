@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import {
   fetchRoomMemberEmails,
   fetchMessages,
   sendMessage,
+  fetchUserProfiles,
+  supabase,
 } from '../supabaseClient';
 import { getRoomId } from '../helpers/roomHelpers';
 import { UserAuth } from '../context/AuthContext';
@@ -14,6 +16,10 @@ function ChatArea({ selectedRoom, roomId }) {
   const [newMessage, setNewMessage] = useState('');
   const [usernames, setUsernames] = useState({});
   const { session } = UserAuth();
+  const [userProfiles, setUserProfiles] = useState({});
+  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
+  const autoScrollEnabled = useRef(true);
 
   const fetchAndSetMessages = async (currentRoomId) => {
     const { data, error } = await fetchMessages(currentRoomId);
@@ -22,6 +28,20 @@ function ChatArea({ selectedRoom, roomId }) {
       setMessages([]);
     } else {
       setMessages(data);
+      if (data && data.length > 0) {
+        const userIds = [...new Set(data.map((msg) => msg.user_id))];
+        const { data: profiles, error: profilesError } =
+          await fetchUserProfiles(userIds);
+        if (profilesError) {
+          console.error('Error fetching user profiles:', profilesError);
+        } else {
+          const profilesMap = profiles.reduce((acc, profile) => {
+            acc[profile.id] = profile;
+            return acc;
+          }, {});
+          setUserProfiles(profilesMap);
+        }
+      }
     }
   };
 
@@ -37,8 +57,56 @@ function ChatArea({ selectedRoom, roomId }) {
         setRoomMembers(emailList);
       });
       fetchAndSetMessages(currentRoomId);
+
+      const subscription = supabase
+        .channel(`room:${currentRoomId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'messages',
+            filter: `room_id=eq.${currentRoomId}`,
+          },
+          async (payload) => {
+            const newMessage = payload.new;
+            if (!userProfiles[newMessage.user_id]) {
+              const { data: profiles, error } = await fetchUserProfiles([
+                newMessage.user_id,
+              ]);
+              if (!error && profiles) {
+                const newProfile = profiles[0];
+                setUserProfiles((prev) => ({
+                  ...prev,
+                  [newProfile.id]: newProfile,
+                }));
+              }
+            }
+            setMessages((prevMessages) => [...prevMessages, newMessage]);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(subscription);
+      };
     }
-  }, [selectedRoom]);
+  }, [selectedRoom, userProfiles]);
+
+  useEffect(() => {
+    if (autoScrollEnabled.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  const handleScroll = () => {
+    const container = chatContainerRef.current;
+    if (container) {
+      const atBottom =
+        container.scrollHeight - container.scrollTop === container.clientHeight;
+      autoScrollEnabled.current = atBottom;
+    }
+  };
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -53,7 +121,6 @@ function ChatArea({ selectedRoom, roomId }) {
       console.error('Error sending message:', error);
     } else {
       setNewMessage('');
-      fetchAndSetMessages(currentRoomId);
     }
   };
 
@@ -101,21 +168,45 @@ function ChatArea({ selectedRoom, roomId }) {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 p-4 overflow-y-auto">
+      <div
+        ref={chatContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 p-4 overflow-y-auto"
+      >
         {messages.length > 0 ? (
-          messages.map((msg) => (
-            <div key={msg.id} className="mb-4">
-              <div className="flex items-center">
-                <span className="font-bold text-gray-800">
-                  User-{msg.user_id.substring(0, 16)}...
-                </span>
-                <span className="text-xs text-gray-500 ml-2">
-                  {new Date(msg.created_at).toLocaleTimeString()}
-                </span>
+          messages.map((msg) => {
+            const isOwner = session?.user?.id === msg.user_id;
+            return (
+              <div
+                key={msg.id}
+                className={`flex ${
+                  isOwner ? 'justify-end' : 'justify-start'
+                } mb-4`}
+              >
+                <div className="flex flex-col">
+                  <div
+                    className={`flex items-center ${
+                      isOwner ? 'flex-row-reverse' : ''
+                    }`}
+                  >
+                    <span className="text-xs text-gray-500 mx-2">
+                      {new Date(msg.created_at).toLocaleTimeString()}
+                    </span>
+                    <span className="font-bold text-gray-800">
+                      {userProfiles[msg.user_id]?.email || 'Unknown User'}
+                    </span>
+                  </div>
+                  <div
+                    className={`mt-1 p-2 rounded-lg max-w-xs ${
+                      isOwner ? 'bg-blue-600 text-white' : 'bg-white'
+                    }`}
+                  >
+                    <p className="text-sm">{msg.content}</p>
+                  </div>
+                </div>
               </div>
-              <p className="text-gray-700">{msg.content}</p>
-            </div>
-          ))
+            );
+          })
         ) : (
           <div className="text-center text-gray-500 mt-8">
             <div className="text-lg mb-2">💬</div>
@@ -123,11 +214,12 @@ function ChatArea({ selectedRoom, roomId }) {
             <div className="text-sm">Be the first to send a message!</div>
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
       <div className="p-4 border-t bg-white">
-        <form onSubmit={handleSendMessage} className="flex">
+        <form onSubmit={handleSendMessage} className="flex p-0">
           <input
             type="text"
             className="w-full p-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"

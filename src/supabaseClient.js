@@ -445,17 +445,17 @@ async function fetchRoomMemberEmails(roomId) {
   return { data: data || [], error: null };
 }
 
-async function fetchUsername(userId) {
-  const { data, error } = await supabase
-    .from('profiles')
-    .select('username')
-    .eq('id', userId)
-    .single();
-  if (error) {
-    return { data: null, error };
-  }
-  return { data: data?.username || null, error: null };
-}
+// async function fetchUsername(userId) {
+//   const { data, error } = await supabase
+//     .from('profiles')
+//     .select('username')
+//     .eq('id', userId)
+//     .single();
+//   if (error) {
+//     return { data: null, error };
+//   }
+//   return { data: data?.username || null, error: null };
+// }
 
 async function sendMessage(roomId, userId, content) {
   const { data, error } = await supabase
@@ -473,6 +473,14 @@ async function fetchMessages(roomId) {
   return { data, error };
 }
 
+const fetchUserProfiles = async (userIds) => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, email')
+    .in('id', userIds);
+  return { data, error };
+};
+
 export {
   supabase,
   createPublicRoom,
@@ -487,7 +495,7 @@ export {
   fetchRoomAllMemberEmails,
   fetchRoomAllMemberEmailsAlternative,
   fetchRoomMemberEmails,
-  fetchUsername,
   sendMessage,
+  fetchUserProfiles,
   fetchMessages,
 };
