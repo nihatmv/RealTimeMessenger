@@ -48,11 +48,8 @@ function ChatArea({ selectedRoom, roomId }) {
   useEffect(() => {
     if (selectedRoom) {
       const currentRoomId = getRoomId(selectedRoom);
-      console.log('Selected room object:', selectedRoom);
-      console.log('Selected room ID:', currentRoomId);
-      fetchRoomMemberEmails(currentRoomId).then(({ data, error }) => {
-        console.log('Fetched room members:', data, error);
 
+      fetchRoomMemberEmails(currentRoomId).then(({ data, error }) => {
         const emailList = data ? data.map((item) => item.email) : [];
         setRoomMembers(emailList);
       });

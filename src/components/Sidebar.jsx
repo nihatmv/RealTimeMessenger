@@ -18,7 +18,7 @@ function Sidebar({
   const [showCreateRoomModal, setShowCreateRoomModal] = useState(false);
   const [activeSection, setActiveSection] = useState('public');
   const [showJoinRoomModal, setShowJoinRoomModal] = useState(false);
-
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [publicRoomName, setPublicRoomName] = useState('');
   const [privateRoomName, setPrivateRoomName] = useState('');
   const [privateRoomPassword, setPrivateRoomPassword] = useState('');
