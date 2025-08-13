@@ -241,14 +241,14 @@ async function fetchOtherRooms() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  console.log('user:', user.id);
 
   if (!user) {
     return { data: null, error: { message: 'User not authenticated' } };
   }
 
+  // Query the 'Rooms' table directly and filter by the creator
   const { data, error } = await supabase
-    .from('rooms_with_creator_email')
+    .from('Rooms')
     .select('*')
     .neq('created_by', user.id)
     .eq('is_active', true);
@@ -317,33 +317,35 @@ async function fetchUserAccessibleRooms() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user)
+  if (!user) {
     return { data: null, error: { message: 'User not authenticated' } };
+  }
 
-  // Get rooms created by user using the new view
+  // 1. Fetch rooms the user has created
   const { data: createdRooms, error: createdError } = await supabase
-    .from('rooms_with_creator_email')
+    .from('Rooms')
     .select('*')
     .eq('created_by', user.id)
     .eq('is_active', true);
 
-  // Get rooms user has joined using the new view
+  // 2. Fetch rooms the user has joined through the RoomMemberships table
   const { data: joinedRooms, error: joinedError } = await supabase
-    .from('rooms_with_creator_email')
+    .from('RoomMemberships')
     .select(
       `
-      *,
-      RoomMemberships!inner(user_id)
+      Rooms ( * ) // Select all columns from the Rooms table
     `
     )
-    .eq('RoomMemberships.user_id', user.id)
-    .eq('is_active', true);
+    .eq('user_id', user.id);
 
-  // Combine and remove duplicates
-  const allRooms = [...(createdRooms || []), ...(joinedRooms || [])];
+  // Extract the actual room data from the nested 'Rooms' object
+  const joinedRoomsData = joinedRooms?.map((membership) => membership.Rooms) || [];
+
+  // 3. Combine and remove duplicates
+  const allRooms = [...(createdRooms || []), ...joinedRoomsData];
   const uniqueRooms = allRooms.filter(
     (room, index, self) =>
-      index === self.findIndex((r) => r.room_id === room.room_id)
+      index === self.findIndex((r) => r.id === room.id)
   );
 
   return { data: uniqueRooms, error: createdError || joinedError };

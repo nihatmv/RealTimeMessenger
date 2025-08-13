@@ -20,6 +20,7 @@ function ChatArea({ selectedRoom, roomId }) {
   const messagesEndRef = useRef(null);
   const chatContainerRef = useRef(null);
   const autoScrollEnabled = useRef(true);
+  const userProfilesRef = useRef({});
 
   const fetchAndSetMessages = async (currentRoomId) => {
     const { data, error } = await fetchMessages(currentRoomId);
@@ -67,7 +68,7 @@ function ChatArea({ selectedRoom, roomId }) {
           },
           async (payload) => {
             const newMessage = payload.new;
-            if (!userProfiles[newMessage.user_id]) {
+            if (!userProfilesRef.current[newMessage.user_id]) {
               const { data: profiles, error } = await fetchUserProfiles([
                 newMessage.user_id,
               ]);
@@ -88,7 +89,12 @@ function ChatArea({ selectedRoom, roomId }) {
         supabase.removeChannel(subscription);
       };
     }
-  }, [selectedRoom, userProfiles]);
+  }, [selectedRoom]);
+
+  // Keep ref in sync without retriggering the subscription effect
+  useEffect(() => {
+    userProfilesRef.current = userProfiles;
+  }, [userProfiles]);
 
   useEffect(() => {
     if (autoScrollEnabled.current) {
@@ -99,8 +105,10 @@ function ChatArea({ selectedRoom, roomId }) {
   const handleScroll = () => {
     const container = chatContainerRef.current;
     if (container) {
+      const threshold = 12;
       const atBottom =
-        container.scrollHeight - container.scrollTop === container.clientHeight;
+        container.scrollTop + container.clientHeight >=
+        container.scrollHeight - threshold;
       autoScrollEnabled.current = atBottom;
     }
   };

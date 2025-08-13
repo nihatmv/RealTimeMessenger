@@ -47,16 +47,6 @@ function Sidebar({
     }
   }, [showJoinRoomModal]);
 
-  // useEffect(() => {
-  //   async function getUsername() {
-  //     if (session?.user?.id) {
-  //       const { data: username, error } = await fetchUsername(session.user.id);
-  //       if (username) setUsername(username);
-  //     }
-  //   }
-  //   getUsername();
-  // }, [session]);
-
   function handleTabSwitch(section) {
     setActiveSection(section);
 
@@ -198,20 +188,9 @@ function Sidebar({
           Create Room
         </span>
       </div>
-      {/* Join Room Button */}
-      {/* <div className="relative group w-full flex flex-col items-center">
-        <button
-          className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center hover:bg-blue-700 transition"
-          onClick={() => setShowJoinRoomModal(true)}
-        >
-          <span className="text-lg">⇄</span>
-        </button>
-        <span className="absolute left-12 top-1/2 -translate-y-1/2 bg-gray-800 text-white text-xs px-2 py-0.5 rounded opacity-0 group-hover:opacity-90 transition whitespace-nowrap z-10 select-none pointer-events-none shadow">
-          Join Room
-        </span>
-      </div> */}
+
       {showCreateRoomModal && (
-        <div className="fixed inset-0 bg-opacity-40 flex justify-center items-center z-50 ">
+        <div className="fixed inset-0 bg-black/50  flex justify-center items-center z-50 !m-0">
           {/* Larger, softer dark backdrop */}
           <div className="">
             {/* Modal content */}
@@ -255,8 +234,9 @@ function Sidebar({
                     </div>
                   </div>
                   <button
-                    className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition"
+                    className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-blue-600"
                     onClick={handleCreatePublicRoom}
+                    disabled={!publicRoomName.trim()}
                   >
                     Create Public Room
                   </button>
@@ -302,8 +282,11 @@ function Sidebar({
                     </div>
                   </div>
                   <button
-                    className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition"
+                    className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-green-600"
                     onClick={handleCreatePrivateRoom}
+                    disabled={
+                      !privateRoomName.trim() || !privateRoomPassword.trim()
+                    }
                   >
                     Generate Private Room
                   </button>
@@ -319,135 +302,6 @@ function Sidebar({
           </div>
         </div>
       )}
-      {/* {showJoinRoomModal && (
-        <div className="fixed inset-0 flex justify-center items-center z-50">
-          <div
-            className="bg-black bg-opacity-30 rounded-lg p-12"
-            onClick={() => {
-              setShowJoinRoomModal(false);
-              setSelectedRoom(null);
-              setJoinRoomPassword('');
-              setJoinMessage('');
-            }}
-          >
-            <div
-              className="bg-white rounded-lg shadow-lg p-6 w-80 flex flex-col items-start gap-3"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="flex items-center w-full justify-between mb-2">
-                <h2 className="text-xl font-bold text-gray-900">Join a Room</h2>
-                <button
-                  className="text-gray-400 hover:text-red-500 text-lg font-bold"
-                  onClick={() => {
-                    setShowJoinRoomModal(false);
-                    setSelectedRoom(null);
-                    setJoinRoomPassword('');
-                    setJoinMessage('');
-                  }}
-                >
-                  ×
-                </button>
-              </div>
-              {isJoinLoading ? (
-                <div className="text-gray-500 text-center w-full">
-                  Loading rooms...
-                </div>
-              ) : joinError ? (
-                <div className="text-red-500 text-center w-full">
-                  {joinError}
-                </div>
-              ) : joinRooms.length === 0 ? (
-                <div className="text-gray-400 text-center w-full">
-                  No rooms available
-                </div>
-              ) : (
-                <div className="w-full max-h-64 overflow-y-auto space-y-2">
-                  {joinRooms.map((room) => (
-                    <div
-                      key={getRoomId(room)}
-                      className={`rounded-lg p-3 flex flex-col cursor-pointer transition
-                        ${
-                          selectedRoom &&
-                          getRoomId(selectedRoom) === getRoomId(room)
-                            ? 'bg-blue-500 text-white border-2 border-blue-700 shadow-lg'
-                            : 'bg-gray-100 hover:bg-blue-100 text-gray-900'
-                        }
-                      `}
-                      onClick={() => {
-                        setSelectedRoom(room);
-                        setJoinRoomPassword('');
-                      }}
-                    >
-                      <div className="font-medium text-gray-900">
-                        {room.name}
-                      </div>
-                      <div className="text-xs text-gray-600 mt-1">
-                        Code: {room.room_code}
-                        {room.password && (
-                          <span className="ml-2 text-gray-400">🔒 Private</span>
-                        )}
-                      </div>
-                      {selectedRoom &&
-                        getRoomId(selectedRoom) === getRoomId(room) && (
-                          <span className="text-lg text-white">✓</span>
-                        )}
-                    </div>
-                  ))}
-                </div>
-              )}
-              {selectedRoom && selectedRoom.password && (
-                <input
-                  type="password"
-                  className="w-full border p-2 rounded text-gray-900 mt-2"
-                  placeholder="Enter room password"
-                  value={joinRoomPassword}
-                  onChange={(e) => setJoinRoomPassword(e.target.value)}
-                />
-              )}
-              {joinMessage && (
-                <div className="w-full text-green-600 text-center text-sm mb-2">
-                  {joinMessage}
-                </div>
-              )}
-              {selectedRoom && (
-                <button
-                  className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition mt-2"
-                  onClick={() => {
-                    // Implement join logic here
-                    console.log('Joining room:', selectedRoom);
-                    if (selectedRoom.password) {
-                      if (!joinRoomPassword) {
-                        alert('Password is required to join this room.');
-                        return;
-                      }
-                      if (joinRoomPassword !== selectedRoom.password) {
-                        alert('Incorrect password.');
-                        return;
-                      }
-                      setJoinMessage('Password correct! Joining room...');
-                      setTimeout(() => {
-                        setCurrentRoom(selectedRoom);
-                        setShowJoinRoomModal(false);
-                        setSelectedRoom(null);
-                        setJoinRoomPassword('');
-                        setJoinMessage('');
-                      }, 1000);
-                      return;
-                    }
-                    setCurrentRoom(selectedRoom);
-                    setShowJoinRoomModal(false);
-                    setSelectedRoom(null);
-                    setJoinRoomPassword('');
-                    setJoinMessage('');
-                  }}
-                >
-                  {selectedRoom.password ? 'Join Room' : 'Join Room'}
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-      )} */}
       {currentRoom && (
         <div className="w-full flex flex-col items-center mt-4">
           <div className="text-xs text-gray-400">Current Room</div>
