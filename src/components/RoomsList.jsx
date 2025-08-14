@@ -155,7 +155,7 @@ function RoomsList({ onRoomSelect, selectedRoom, onRefresh }) {
   }
 
   return (
-    <div className="w-80 h-screen bg-gray-800 text-white p-4 overflow-y-auto">
+    <div className={`lg:w-80 w-full h-screen bg-gray-800 text-white p-4 overflow-y-auto ${selectedRoom ? "hidden lg:block" : ""}`}>
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Rooms</h2>
         <button

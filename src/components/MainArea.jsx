@@ -10,15 +10,17 @@ function MainArea({ onRoomsRefresh }) {
   }
 
   return (
-    <div className="flex flex-1">
-      <div className="w-80 bg-gray-800 text-white border-r border-gray-700">
+    <div className="flex flex-1 ">
+      <div className={`lg:w-80 w-full bg-gray-800 text-white border-r border-gray-700 ${selectedRoom ? "hidden lg:block" : ""}`}>
         <RoomsList
           onRoomSelect={handleRoomSelect}
           selectedRoom={selectedRoom}
           onRefresh={onRoomsRefresh}
         />
       </div>
-      <ChatArea selectedRoom={selectedRoom} />
+      <div className='flex flex-1'>
+        <ChatArea selectedRoom={selectedRoom} />
+      </div>
     </div>
   );
 }

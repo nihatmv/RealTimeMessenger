@@ -124,24 +124,6 @@ async function createPrivateRoom({ name, password }) {
   return { data: newRooms, error: null };
 }
 
-async function fetchRooms() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: null, error: { message: 'User not authenticated' } };
-  }
-
-  const { data, error } = await supabase
-    .from('Rooms')
-    .select('*')
-    .eq('is_active', true)
-    .eq('created_by', user.id);
-
-  return { data, error };
-}
-
 async function deleteRoom(roomId) {
   const {
     data: { user },
@@ -182,59 +164,6 @@ async function deleteRoom(roomId) {
   } catch (err) {
     return { data: null, error: { message: 'Unexpected error occurred' } };
   }
-}
-
-async function fetchUserRooms() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: null, error: { message: 'User not authenticated' } };
-  }
-
-  const { data, error } = await supabase
-    .from('Rooms')
-    .select(
-      `
-      *,
-      RoomMemberships!inner(user_id)
-    `
-    )
-    .eq('RoomMemberships.user_id', user.id)
-    .eq('is_active', true);
-
-  return { data, error };
-}
-
-async function fetchAvailableRooms() {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return { data: null, error: { message: 'User not authenticated' } };
-  }
-
-  // Get rooms that the user hasn't joined yet
-  const { data: userMemberships, error: userMembershipsError } = await supabase
-    .from('RoomMemberships')
-    .select('room_id')
-    .eq('user_id', user.id);
-
-  let query = supabase.from('Rooms').select('*').eq('is_active', true);
-
-  if (userMemberships && userMemberships.length > 0) {
-    query = query.not(
-      'id',
-      'in',
-      `(${userMemberships.map((r) => r.room_id).join(',')})`
-    );
-  }
-
-  const { data, error } = await query;
-
-  return { data, error };
 }
 
 async function fetchOtherRooms() {
@@ -339,98 +268,16 @@ async function fetchUserAccessibleRooms() {
     .eq('user_id', user.id);
 
   // Extract the actual room data from the nested 'Rooms' object
-  const joinedRoomsData = joinedRooms?.map((membership) => membership.Rooms) || [];
+  const joinedRoomsData =
+    joinedRooms?.map((membership) => membership.Rooms) || [];
 
   // 3. Combine and remove duplicates
   const allRooms = [...(createdRooms || []), ...joinedRoomsData];
   const uniqueRooms = allRooms.filter(
-    (room, index, self) =>
-      index === self.findIndex((r) => r.id === room.id)
+    (room, index, self) => index === self.findIndex((r) => r.id === room.id)
   );
 
   return { data: uniqueRooms, error: createdError || joinedError };
-}
-
-// Fetch all member emails and the creator's email for a room
-async function fetchRoomAllMemberEmails(roomId) {
-  // 1. Fetch all member emails from the view
-  const { data: memberships, error: membershipsError } = await supabase
-    .from('room_members_with_email')
-    .select('email')
-    .eq('room_id', roomId);
-
-  if (membershipsError) {
-    return { data: null, error: membershipsError };
-  }
-
-  const memberEmails = memberships?.map((m) => m.email) || [];
-
-  // 2. Fetch the creator's email
-  const { data: room, error: roomError } = await supabase
-    .from('Rooms')
-    .select('created_by')
-    .eq('id', roomId)
-    .single();
-
-  if (roomError || !room) {
-    return { data: null, error: roomError || { message: 'Room not found' } };
-  }
-
-  // 3. Get creator's email from auth.users
-  const { data: creator, error: creatorError } = await supabase
-    .from('room_members_with_email')
-    .select('email')
-    .eq('user_id', room.created_by)
-    .single();
-
-  if (creatorError) {
-    console.warn('Could not fetch creator email:', creatorError);
-  }
-
-  // 4. Combine and deduplicate emails
-  const allEmails = [...memberEmails];
-  if (creator?.email && !allEmails.includes(creator.email)) {
-    allEmails.push(creator.email);
-  }
-
-  return { data: allEmails, error: null };
-}
-
-// Alternative function to fetch room member emails without SQL view
-async function fetchRoomAllMemberEmailsAlternative(roomId) {
-  // 1. Fetch all user_ids from RoomMemberships for the room
-  const { data: memberships, error: membershipsError } = await supabase
-    .from('RoomMemberships')
-    .select('user_id')
-    .eq('room_id', roomId);
-
-  if (membershipsError) {
-    return { data: null, error: membershipsError };
-  }
-
-  const memberUserIds = memberships?.map((m) => m.user_id) || [];
-
-  // 2. Fetch the creator's user ID
-  const { data: room, error: roomError } = await supabase
-    .from('Rooms')
-    .select('created_by')
-    .eq('id', roomId)
-    .single();
-
-  if (roomError || !room) {
-    return { data: null, error: roomError || { message: 'Room not found' } };
-  }
-
-  // 3. Combine and deduplicate user IDs
-  const allUserIds = [...memberUserIds];
-  if (!allUserIds.includes(room.created_by)) {
-    allUserIds.push(room.created_by);
-  }
-
-  // 4. Fetch emails for all user IDs using admin API
-  // Note: This requires server-side implementation or RPC function
-  // For now, we'll return user IDs and handle email fetching in the UI
-  return { data: allUserIds, error: null };
 }
 
 // Fetch room member emails using RPC function
@@ -446,18 +293,6 @@ async function fetchRoomMemberEmails(roomId) {
 
   return { data: data || [], error: null };
 }
-
-// async function fetchUsername(userId) {
-//   const { data, error } = await supabase
-//     .from('profiles')
-//     .select('username')
-//     .eq('id', userId)
-//     .single();
-//   if (error) {
-//     return { data: null, error };
-//   }
-//   return { data: data?.username || null, error: null };
-// }
 
 async function sendMessage(roomId, userId, content) {
   const { data, error } = await supabase
@@ -487,15 +322,10 @@ export {
   supabase,
   createPublicRoom,
   createPrivateRoom,
-  fetchRooms,
   deleteRoom,
-  fetchUserRooms,
-  fetchAvailableRooms,
   fetchOtherRooms,
   joinRoom,
   fetchUserAccessibleRooms,
-  fetchRoomAllMemberEmails,
-  fetchRoomAllMemberEmailsAlternative,
   fetchRoomMemberEmails,
   sendMessage,
   fetchUserProfiles,
