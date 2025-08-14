@@ -10,6 +10,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const [currentRoom, setCurrentRoom] = useState(null);
   const [refreshRooms, setRefreshRooms] = useState(null);
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
   const handleSignOut = async (e) => {
     e.preventDefault();
@@ -33,8 +34,13 @@ const Dashboard = () => {
         currentRoom={currentRoom}
         setCurrentRoom={setCurrentRoom}
         refreshRooms={refreshRooms}
+        selectedRoom={selectedRoom}
       />
-      <MainArea onRoomsRefresh={handleRoomsRefresh} />
+      <MainArea
+        onRoomsRefresh={handleRoomsRefresh}
+        selectedRoom={selectedRoom}
+        onRoomSelect={setSelectedRoom}
+      />
     </div>
   );
 };

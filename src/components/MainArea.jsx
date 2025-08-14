@@ -1,25 +1,25 @@
-import React, { useState } from 'react';
+import React from 'react';
 import RoomsList from './RoomsList';
 import ChatArea from './ChatArea';
 
-function MainArea({ onRoomsRefresh }) {
-  const [selectedRoom, setSelectedRoom] = useState(null);
-
+function MainArea({ onRoomsRefresh, selectedRoom, onRoomSelect }) {
   function handleRoomSelect(room) {
-    setSelectedRoom(room);
+    onRoomSelect(room);
   }
 
   return (
     <div className="flex flex-1 ">
-      <div className={`lg:w-80 w-full bg-gray-800 text-white border-r border-gray-700 ${selectedRoom ? "hidden lg:block" : ""}`}>
+      <div
+        className={`lg:w-80 w-full bg-gray-800 text-white border-r border-gray-700 ${selectedRoom ? 'hidden lg:block' : ''}`}
+      >
         <RoomsList
           onRoomSelect={handleRoomSelect}
           selectedRoom={selectedRoom}
           onRefresh={onRoomsRefresh}
         />
       </div>
-      <div className='flex flex-1'>
-        <ChatArea selectedRoom={selectedRoom} />
+      <div className="flex flex-1">
+        <ChatArea selectedRoom={selectedRoom} onRoomSelect={onRoomSelect} />
       </div>
     </div>
   );

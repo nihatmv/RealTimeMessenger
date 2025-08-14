@@ -9,7 +9,7 @@ import {
 import { getRoomId } from '../helpers/roomHelpers';
 import { UserAuth } from '../context/AuthContext';
 
-function ChatArea({ selectedRoom, roomId }) {
+function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   const [roomMembers, setRoomMembers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isChatAreaOpen, setisChatAreaOpen] = useState(false);
@@ -151,44 +151,45 @@ function ChatArea({ selectedRoom, roomId }) {
 
   return (
     <div
-      className={`flex-1 flex flex-col bg-gray-100 ${selectedRoom ? 'w-full' : ''}`}
+      className={`flex-1 relative flex flex-col bg-gray-200 ${selectedRoom ? 'w-full' : ''}`}
     >
       {/* Room Header */}
-      <div className="bg-white border-b p-4">
-  <div className="flex items-center text-center">
-    {/* Left: Back button */}
-    <div className="flex-1 flex justify-start">
-      <button
-        className="px-3 py-1 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition"
-        onClick={() => setisChatAreaOpen(false)}
-      >
-        ← Back
-      </button>
-    </div>
+      <div className=" sticky left-0 top-0 right-0 bg-white border-b p-4 z-10">
+        <div className="flex items-center text-center">
+          {/* Left: Back button */}
+          <div className="flex-1 flex justify-start">
+            <button
+              className="px-3 py-1 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition"
+              onClick={() => onRoomSelect && onRoomSelect(null)}
+            >
+              ← Back
+            </button>
+          </div>
 
-    {/* Center: Room name and code */}
-    <div className="flex-1">
-      <h2 className="text-xl font-semibold text-gray-800 p-0">{selectedRoom.name}</h2>
-      <div className="text-sm text-gray-500">
-        Room Code: {selectedRoom.room_code}
-        {selectedRoom.password && (
-          <span className="ml-2 text-yellow-600">🔒 Private Room</span>
-        )}
+          {/* Center: Room name and code */}
+          <div className="flex-1">
+            <h2 className="text-xl font-semibold text-gray-800 p-0">
+              {selectedRoom.name}
+            </h2>
+            <div className="text-sm text-gray-500">
+              Room Code: {selectedRoom.room_code}
+              {selectedRoom.password && (
+                <span className="ml-2 text-yellow-600">🔒 Private Room</span>
+              )}
+            </div>
+          </div>
+
+          {/* Right: Members button */}
+          <div className="flex-1 flex justify-end">
+            <button
+              className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              onClick={() => setIsModalOpen(true)}
+            >
+              Members
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
-
-    {/* Right: Members button */}
-    <div className="flex-1 flex justify-end">
-      <button
-        className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-        onClick={() => setIsModalOpen(true)}
-      >
-        Members
-      </button>
-    </div>
-  </div>
-</div>
-
 
       {/* Messages */}
       <div
@@ -241,7 +242,8 @@ function ChatArea({ selectedRoom, roomId }) {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t bg-white">
+      <div className="sticky left-0 right-0 bottom-0 p-4 border-t bg-white z-10">
+
         <form onSubmit={handleSendMessage} className="flex p-0">
           <input
             type="text"

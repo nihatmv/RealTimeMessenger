@@ -12,6 +12,7 @@ function Sidebar({
   currentRoom,
   setCurrentRoom,
   refreshRooms,
+  selectedRoom,
 }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const hoverTimeout = useRef(null);
@@ -30,7 +31,7 @@ function Sidebar({
   const [isJoinLoading, setIsJoinLoading] = useState(false);
   const [joinError, setJoinError] = useState('');
 
-  const [selectedRoom, setSelectedRoom] = useState(null);
+  // selectedRoom is now provided from parent
   const [joinRoomPassword, setJoinRoomPassword] = useState('');
   const [joinMessage, setJoinMessage] = useState('');
   const [username, setUsername] = useState('');
@@ -144,13 +145,17 @@ function Sidebar({
       return;
     }
 
-    setCurrentRoom(selectedRoom);
+    // After joining, set currentRoom to the room being joined
+    const joinedRoom = joinRooms.find((r) => getRoomId(r) === roomId) || null;
+    setCurrentRoom(joinedRoom);
     setShowJoinRoomModal(false);
     setJoinMessage('');
   };
 
   return (
-    <div className="w-16 bg-gray-900 text-white flex flex-col items-center py-4 space-y-8">
+    <div
+      className={`w-16 bg-gray-900 text-white flex flex-col items-center py-4 space-y-8 ${selectedRoom ? 'hidden lg:block' : ''}`}
+    >
       <div
         className="relative flex flex-col items-center w-full"
         onMouseEnter={handleMouseEnter}
