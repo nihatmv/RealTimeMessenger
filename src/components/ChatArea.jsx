@@ -23,6 +23,7 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   const chatContainerRef = useRef(null);
   const autoScrollEnabled = useRef(true);
   const userProfilesRef = useRef({});
+  const inputRef = useRef(null);
 
   const fetchAndSetMessages = async (currentRoomId) => {
     const { data, error } = await fetchMessages(currentRoomId);
@@ -99,9 +100,14 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   }, [userProfiles]);
 
   useEffect(() => {
-    if (autoScrollEnabled.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }
+    if (!autoScrollEnabled.current) return;
+    if (document.activeElement === inputRef.current) return;
+
+    const container = chatContainerRef.current;
+    if (!container) return;
+
+    // jump instantly to bottom; no smooth animation
+    container.scrollTop = container.scrollHeight;
   }, [messages]);
 
   const handleScroll = () => {
@@ -116,19 +122,20 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   };
 
   const handleSendMessage = async (e) => {
-    e.preventDefault();
+    e.preventDefault?.();
     if (newMessage.trim() === '' || !session) return;
 
     const currentRoomId = getRoomId(selectedRoom);
     const userId = session.user.id;
 
     const { error } = await sendMessage(currentRoomId, userId, newMessage);
-
     if (error) {
       console.error('Error sending message:', error);
-    } else {
-      setNewMessage('');
+      return;
     }
+
+    setNewMessage('');
+    requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   if (!selectedRoom) {
@@ -154,7 +161,7 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
       className={`flex-1 relative flex flex-col bg-gray-200 ${selectedRoom ? 'w-full' : ''}`}
     >
       {/* Room Header */}
-      <div className=" sticky left-0 top-0 right-0 bg-white border-b p-4 z-10">
+      <div className=" sticky left-0 top-0 right-0 bg-white border-b px-3 z-10">
         <div className="flex items-center text-center">
           {/* Left: Back button */}
           <div className="flex-1 flex justify-start">
@@ -243,10 +250,12 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
 
       {/* Input */}
       <div className="sticky left-0 right-0 bottom-0 p-4 border-t bg-white z-10">
-
         <form onSubmit={handleSendMessage} className="flex p-0">
           <input
+            ref={inputRef}
             type="text"
+            enterKeyHint="send"
+            inputMode="text"
             className="w-full p-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Type a message..."
             value={newMessage}
@@ -254,6 +263,8 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
           />
           <button
             type="submit"
+            onMouseDown={(e) => e.preventDefault()}
+            onTouchStart={(e) => e.preventDefault()}
             className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 transition disabled:bg-blue-300"
             disabled={!newMessage.trim() || !session}
           >
