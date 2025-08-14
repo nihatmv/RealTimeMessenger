@@ -23,7 +23,6 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   const chatContainerRef = useRef(null);
   const autoScrollEnabled = useRef(true);
   const userProfilesRef = useRef({});
-  const inputRef = useRef(null);
 
   const fetchAndSetMessages = async (currentRoomId) => {
     const { data, error } = await fetchMessages(currentRoomId);
@@ -117,20 +116,19 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   };
 
   const handleSendMessage = async (e) => {
-    e.preventDefault?.();
+    e.preventDefault();
     if (newMessage.trim() === '' || !session) return;
 
     const currentRoomId = getRoomId(selectedRoom);
     const userId = session.user.id;
 
     const { error } = await sendMessage(currentRoomId, userId, newMessage);
+
     if (error) {
       console.error('Error sending message:', error);
-      return;
+    } else {
+      setNewMessage('');
     }
-
-    setNewMessage('');
-    requestAnimationFrame(() => inputRef.current?.focus());
   };
 
   if (!selectedRoom) {
@@ -245,12 +243,10 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
 
       {/* Input */}
       <div className="sticky left-0 right-0 bottom-0 p-4 border-t bg-white z-10">
+
         <form onSubmit={handleSendMessage} className="flex p-0">
           <input
-            ref={inputRef}
             type="text"
-            enterKeyHint="send"
-            inputMode="text"
             className="w-full p-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Type a message..."
             value={newMessage}
@@ -258,8 +254,6 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
           />
           <button
             type="submit"
-            onMouseDown={(e) => e.preventDefault()}
-            onTouchStart={(e) => e.preventDefault()}
             className="px-4 py-2 bg-blue-600 text-white rounded-r-md hover:bg-blue-700 transition disabled:bg-blue-300"
             disabled={!newMessage.trim() || !session}
           >
