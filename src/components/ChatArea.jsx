@@ -100,14 +100,9 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   }, [userProfiles]);
 
   useEffect(() => {
-    if (!autoScrollEnabled.current) return;
-    if (document.activeElement === inputRef.current) return;
-
-    const container = chatContainerRef.current;
-    if (!container) return;
-
-    // jump instantly to bottom; no smooth animation
-    container.scrollTop = container.scrollHeight;
+    if (autoScrollEnabled.current) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [messages]);
 
   const handleScroll = () => {
@@ -122,21 +117,20 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   };
 
   const handleSendMessage = async (e) => {
-    e.preventDefault?.();
+    e.preventDefault();
     if (newMessage.trim() === '' || !session) return;
-
+  
     const currentRoomId = getRoomId(selectedRoom);
     const userId = session.user.id;
-
+  
     const { error } = await sendMessage(currentRoomId, userId, newMessage);
-    if (error) {
-      console.error('Error sending message:', error);
-      return;
-    }
-
+    if (error) return console.error(error);
+  
     setNewMessage('');
-    requestAnimationFrame(() => inputRef.current?.focus());
+    // Only focus if input still exists
+    inputRef.current?.focus();
   };
+  
 
   if (!selectedRoom) {
     return (
