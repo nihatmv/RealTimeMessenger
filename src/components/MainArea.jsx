@@ -8,7 +8,7 @@ function MainArea({ onRoomsRefresh, selectedRoom, onRoomSelect }) {
   }
 
   return (
-    <div className="flex flex-1 ">
+    <div className="flex flex-1 h-screen overflow-hidden">
       <div
         className={`lg:w-80 w-full bg-gray-800 text-white border-r border-gray-700 ${selectedRoom ? 'hidden lg:block' : ''}`}
       >
