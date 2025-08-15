@@ -198,47 +198,44 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
         className="flex-1 p-4 overflow-y-auto"
       >
         {messages.length > 0 ? (
-          messages.map((msg, index) => {
-            const isOwner = session?.user?.id === msg.user_id;
-            const showUsername =
-              index === 0 || messages[index - 1].user_id !== msg.user_id;
+  messages.map((msg, index) => {
+    const isOwner = session?.user?.id === msg.user_id;
+    const showUsername = index === 0 || messages[index - 1].user_id !== msg.user_id;
 
-            return (
-              <div
-                key={msg.id}
-                className={`flex ${isOwner ? 'justify-end' : 'justify-start'} mb-1`}
-              >
-                <div className="flex flex-col">
-                  {showUsername && (
-                    <div
-                      className={`flex items-center ${isOwner ? 'flex-row-reverse' : ''}`}
-                    >
-                      <span className="font-bold text-gray-800">
-                        {userProfiles[msg.user_id]?.email || 'Unknown User'}
-                      </span>
-                    </div>
-                  )}
-                  <div
-                    className={`mt-1 p-2 rounded-lg max-w-xs ${
-                      isOwner ? 'bg-blue-600 text-white' : 'bg-white'
-                    }`}
-                  >
-                    <p className="text-sm">{msg.content}</p>
-                    <span className="block text-xs text-gray-500 mt-1">
-                      {new Date(msg.created_at).toLocaleTimeString()}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            );
-          })
-        ) : (
-          <div className="text-center text-gray-500 mt-8">
-            <div className="text-lg mb-2">💬</div>
-            <div>No messages yet</div>
-            <div className="text-sm">Be the first to send a message!</div>
+    return (
+      <div
+        key={msg.id}
+        className={`flex ${isOwner ? 'justify-end' : 'justify-start'} mb-1`}
+      >
+        <div className="flex flex-col">
+          {showUsername && (
+            <div className={`flex items-center ${isOwner ? 'flex-row-reverse' : ''}`}>
+              <span className="font-bold text-gray-800">
+                {userProfiles[msg.user_id]?.email || 'Unknown User'}
+              </span>
+            </div>
+          )}
+          <div
+            className={`mt-1 p-2 rounded-lg max-w-xs ${
+              isOwner ? 'bg-blue-600 text-white' : 'bg-white'
+            }`}
+          >
+            <p className="text-sm">{msg.content}</p>
+            <span className="block text-xs text-gray-500 mt-1">
+              {new Date(msg.created_at).toLocaleTimeString()}
+            </span>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  })
+) : (
+  <div className="text-center text-gray-500 mt-8">
+    <div className="text-lg mb-2">💬</div>
+    <div>No messages yet</div>
+    <div className="text-sm">Be the first to send a message!</div>
+  </div>
+)}
 
         <div ref={messagesEndRef} />
       </div>
@@ -250,8 +247,10 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
             ref={inputRef}
             type="text"
             enterKeyHint="send"
+            
+
             inputMode="text"
-            className="w-full caret-transparent p-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full caret-slate-300 p-2 border rounded-l-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             placeholder="Type a message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
