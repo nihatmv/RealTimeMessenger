@@ -26,3 +26,43 @@ body,
 }
 
 
+html, body { height: 100%; -webkit-text-size-adjust: 100%; }
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* App shell: use dvh; add WebKit fallback */
+.app {
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  padding-top: var(--safe-top);
+}
+
+/* Sticky header */
+.header {
+  position: sticky;
+  top: var(--safe-top);
+  z-index: 50;
+}
+
+/* Scroll area */
+.content {
+  min-height: 0;            /* critical for Safari inside flex/grid */
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Input/footer bar: prefer sticky over fixed on iOS */
+.inputbar {
+  position: sticky;
+  bottom: 0;                /* or bottom: var(--safe-bottom); if you pin to edges */
+  z-index: 50;
+}
+
+/* Prevent input zoom */
+input, select, textarea { font-size: 16px; }
