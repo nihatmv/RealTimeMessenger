@@ -291,6 +291,8 @@ async function fetchRoomMemberEmails(roomId) {
     return { data: null, error };
   }
 
+  console.log('Fetched room member emailssss:', data); // <-- log here
+
   return { data: data || [], error: null };
 }
 

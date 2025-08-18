@@ -4,7 +4,7 @@ import {
   createPrivateRoom,
   fetchOtherRooms,
 } from '../supabaseClient';
-import { joinRoom, getRoomId } from '../helpers/roomHelpers';
+
 
 function Sidebar({
   session,
@@ -131,26 +131,6 @@ function Sidebar({
     setPrivateRoomName('');
     setPrivateRoomPassword('');
   }
-
-  const handleJoinRoom = async (roomId) => {
-    const userId = session.user.id;
-    const { data, error } = await joinRoom({ userId, roomId });
-
-    if (error) {
-      if (error.code === '23505') {
-        setJoinMessage('You are already a member of this room!');
-      } else {
-        setJoinMessage('Failed to join room.');
-      }
-      return;
-    }
-
-    // After joining, set currentRoom to the room being joined
-    const joinedRoom = joinRooms.find((r) => getRoomId(r) === roomId) || null;
-    setCurrentRoom(joinedRoom);
-    setShowJoinRoomModal(false);
-    setJoinMessage('');
-  };
 
   return (
     <div

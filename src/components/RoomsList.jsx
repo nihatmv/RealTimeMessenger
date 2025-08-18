@@ -101,10 +101,13 @@ function RoomsList({ onRoomSelect, selectedRoom, onRefresh }) {
         .select('*')
         .eq('room_code', joinRoomCode.toUpperCase())
         .eq('is_active', true)
-        .single();
+        .maybeSingle();
 
       if (roomError || !room) {
         setJoinError('Room not found');
+        console.log('room error:  ', roomError);
+        console.log('room:  ', room);
+
         return;
       }
 
@@ -155,7 +158,9 @@ function RoomsList({ onRoomSelect, selectedRoom, onRefresh }) {
   }
 
   return (
-    <div className={`lg:w-80 w-full h-screen bg-gray-800 text-white p-4 overflow-y-auto ${selectedRoom ? "hidden lg:block" : ""}`}>
+    <div
+      className={`lg:w-80 w-full h-screen bg-gray-800 text-white p-4 overflow-y-auto ${selectedRoom ? 'hidden lg:block' : ''}`}
+    >
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold">Rooms</h2>
         <button
@@ -220,14 +225,6 @@ function RoomsList({ onRoomSelect, selectedRoom, onRefresh }) {
                     <span className="text-xs">🗑️</span>
                   )}
                 </button>
-              )}
-
-              {hoveredRoomId === getRoomId(room) && (
-                <div className="absolute left-1/2 -translate-x-1/2 top-full mt-2 px-3 py-1 rounded bg-gray-600 text-white shadow-lg z-10">
-                  {isRoomCreatedByUser(room)
-                    ? 'You created the room'
-                    : 'You joined this room'}
-                </div>
               )}
             </div>
           ))}
