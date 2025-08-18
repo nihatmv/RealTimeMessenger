@@ -18,7 +18,6 @@ function RoomsList({ onRoomSelect, selectedRoom, onRefresh }) {
   const [joiningRoom, setJoiningRoom] = useState(false);
   const [joinError, setJoinError] = useState('');
   const [currentUserId, setCurrentUserId] = useState(null);
-  const [hoveredRoomId, setHoveredRoomId] = useState(null);
 
   async function loadRooms() {
     setIsLoading(true);
@@ -177,15 +176,13 @@ function RoomsList({ onRoomSelect, selectedRoom, onRefresh }) {
           {rooms.map((room) => (
             <div
               key={getRoomId(room)}
-              className={`relative group ${
+              className={`relative ${
                 selectedRoom && getRoomId(selectedRoom) === getRoomId(room)
                   ? 'bg-blue-600 text-white'
                   : isRoomCreatedByUser(room)
-                    ? 'bg-gray-700 hover:bg-gray-600 text-white'
+                    ? 'bg-gray-700 text-white'
                     : 'bg-gray-500 text-white'
               } rounded-lg transition-colors`}
-              onMouseEnter={() => setHoveredRoomId(getRoomId(room))}
-              onMouseLeave={() => setHoveredRoomId(null)}
             >
               <button
                 className="w-full text-left p-3 rounded-lg"
@@ -210,7 +207,7 @@ function RoomsList({ onRoomSelect, selectedRoom, onRefresh }) {
                   className={`absolute top-2 right-2 p-1 rounded-full transition-opacity ${
                     deletingRoomId === getRoomId(room)
                       ? 'bg-red-600 text-white'
-                      : 'bg-red-500 hover:bg-red-600 text-white opacity-0 group-hover:opacity-100'
+                      : 'bg-red-500 hover:bg-red-600 text-white'
                   }`}
                   onClick={(e) => {
                     e.stopPropagation();
