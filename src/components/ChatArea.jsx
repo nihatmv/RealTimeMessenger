@@ -9,6 +9,7 @@ import {
 import { getRoomId } from '../helpers/roomHelpers';
 import { UserAuth } from '../context/AuthContext';
 
+
 function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   const [roomMembers, setRoomMembers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
