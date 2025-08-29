@@ -9,7 +9,6 @@ import {
 import { getRoomId } from '../helpers/roomHelpers';
 import { UserAuth } from '../context/AuthContext';
 
-
 function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   const [roomMembers, setRoomMembers] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -232,7 +231,9 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
                       isOwner ? 'bg-blue-600 text-white' : 'bg-white'
                     }`}
                   >
-                    <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
+                    <p className="text-sm whitespace-pre-wrap break-words">
+                      {msg.content}
+                    </p>
                     <span className="block text-xs text-w mt-1">
                       {new Date(msg.created_at).toLocaleTimeString()}
                     </span>
@@ -264,6 +265,14 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
             placeholder="Type a message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
+            onFocus={() => {
+              // Prevent zoom on iOS
+              document.body.style.fontSize = '16px';
+            }}
+            onBlur={() => {
+              // Restore font size
+              document.body.style.fontSize = '';
+            }}
           />
           <button
             type="submit"
