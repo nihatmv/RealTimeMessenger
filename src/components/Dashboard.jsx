@@ -27,7 +27,7 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="flex h-screen">
+    <div className="flex h-dvh">
       <Sidebar
         session={session}
         handleSignOut={handleSignOut}

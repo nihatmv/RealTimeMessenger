@@ -233,7 +233,7 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
                     }`}
                   >
                     <p className="text-sm whitespace-pre-wrap break-words">{msg.content}</p>
-                    <span className="block text-xs text-gray-500 mt-1">
+                    <span className="block text-xs text-w mt-1">
                       {new Date(msg.created_at).toLocaleTimeString()}
                     </span>
                   </div>
