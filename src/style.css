@@ -24,34 +24,3 @@ body,
   margin: 0;
   padding: 0;
 }
-
-/* Mobile viewport fixes */
-@supports (-webkit-touch-callout: none) {
-  /* iOS Safari specific fixes */
-  html,
-  body {
-    height: -webkit-fill-available;
-  }
-
-  #root {
-    height: -webkit-fill-available;
-  }
-}
-
-/* Prevent zoom on input focus for iOS */
-@media screen and (max-width: 768px) {
-  input[type='text'],
-  input[type='email'],
-  input[type='password'] {
-    font-size: 16px !important;
-  }
-}
-
-/* Handle mobile browser UI */
-@media screen and (max-width: 768px) {
-  body {
-    /* Prevent bounce scrolling on iOS */
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior: none;
-  }
-}

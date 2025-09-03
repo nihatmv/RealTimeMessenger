@@ -15,6 +15,8 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   const [isChatAreaOpen, setisChatAreaOpen] = useState(false);
 
   const [messages, setMessages] = useState([]);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [newMessage, setNewMessage] = useState('');
   const [usernames, setUsernames] = useState({});
   const { session } = UserAuth();
@@ -26,12 +28,15 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   const inputRef = useRef(null);
 
   const fetchAndSetMessages = async (currentRoomId) => {
-    const { data, error } = await fetchMessages(currentRoomId);
+    const { data, error } = await fetchMessages(currentRoomId, null);
     if (error) {
       console.error('Error fetching messages:', error);
       setMessages([]);
     } else {
       setMessages(data);
+      if (data.length < 20) {
+        setHasMore(false);
+      }
       if (data && data.length > 0) {
         const userIds = [...new Set(data.map((msg) => msg.user_id))];
         const { data: profiles, error: profilesError } =
@@ -52,6 +57,8 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   useEffect(() => {
     if (selectedRoom) {
       const currentRoomId = getRoomId(selectedRoom);
+      setMessages([]);
+      setHasMore(true);
 
       fetchRoomMemberEmails(currentRoomId).then(({ data, error }) => {
         const emailList = data ? data.map((item) => item.email) : [];
@@ -108,10 +115,58 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
   }, [userProfiles]);
 
   useEffect(() => {
-    if (autoScrollEnabled.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (autoScrollEnabled.current && !loadingOlder) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
     }
-  }, [messages]);
+  }, [messages, loadingOlder]);
+
+  const loadOlderMessages = async () => {
+    if (loadingOlder || !hasMore || messages.length === 0) return;
+
+    setLoadingOlder(true);
+    const currentRoomId = getRoomId(selectedRoom);
+    const oldestMessage = messages[0];
+
+    const { data: olderMessages, error } = await fetchMessages(
+      currentRoomId,
+      oldestMessage.created_at
+    );
+
+    if (error) {
+      console.error('Error fetching older messages:', error);
+    } else {
+      if (olderMessages.length > 0) {
+        const container = chatContainerRef.current;
+        const scrollHeightBefore = container.scrollHeight;
+        const scrollTopBefore = container.scrollTop;
+
+        const userIds = [
+          ...new Set(olderMessages.map((msg) => msg.user_id)),
+        ].filter((id) => !userProfiles[id]);
+
+        if (userIds.length > 0) {
+          const { data: profiles, error: profilesError } =
+            await fetchUserProfiles(userIds);
+          if (!profilesError) {
+            const profilesMap = profiles.reduce((acc, profile) => {
+              acc[profile.id] = profile;
+              return acc;
+            }, {});
+            setUserProfiles((prev) => ({ ...prev, ...profilesMap }));
+          }
+        }
+        setMessages((prev) => [...olderMessages, ...prev]);
+
+        // Restore scroll position
+        container.scrollTop =
+          container.scrollHeight - scrollHeightBefore + scrollTopBefore;
+      }
+      if (olderMessages.length < 20) {
+        setHasMore(false);
+      }
+    }
+    setLoadingOlder(false);
+  };
 
   const handleScroll = () => {
     const container = chatContainerRef.current;
@@ -205,6 +260,18 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
         onScroll={handleScroll}
         className="flex-1 p-4 overflow-y-auto"
       >
+        {loadingOlder ? (
+          <div className="text-center p-2 text-gray-500">Loading...</div>
+        ) : hasMore && messages.length > 0 ? (
+          <div className="text-center p-2">
+            <button
+              onClick={loadOlderMessages}
+              className="px-3 py-1 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition"
+            >
+              Load More
+            </button>
+          </div>
+        ) : null}
         {messages.length > 0 ? (
           messages.map((msg, index) => {
             const isOwner = session?.user?.id === msg.user_id;
@@ -265,14 +332,6 @@ function ChatArea({ selectedRoom, roomId, onRoomSelect }) {
             placeholder="Type a message..."
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            onFocus={() => {
-              // Prevent zoom on iOS
-              document.body.style.fontSize = '16px';
-            }}
-            onBlur={() => {
-              // Restore font size
-              document.body.style.fontSize = '';
-            }}
           />
           <button
             type="submit"

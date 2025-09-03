@@ -303,13 +303,23 @@ async function sendMessage(roomId, userId, content) {
   return { data, error };
 }
 
-async function fetchMessages(roomId) {
-  const { data, error } = await supabase
+async function fetchMessages(roomId, cursor, limit = 20) {
+  let query = supabase
     .from('messages')
     .select('*')
     .eq('room_id', roomId)
-    .order('created_at', { ascending: true });
-  return { data, error };
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (cursor) {
+    query = query.lt('created_at', cursor);
+  }
+
+  const { data, error } = await query;
+
+  const sortedData = data ? data.reverse() : [];
+
+  return { data: sortedData, error };
 }
 
 const fetchUserProfiles = async (userIds) => {
